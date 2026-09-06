@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepcave-x"
+version = "0.1.0"
+description = "DeepCAVE-X: HPO trajectory comparison, importance and bottleneck diagnosis on top of DeepCAVE."
+readme = "README.md"
+requires-python = ">=3.9,<3.11"
+dependencies = [
+    "deepcave==1.4.1",
+    "ConfigSpace==1.2.0",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "plotly==5.24.1",
+    "kaleido==0.2.1",
+]
+
+[project.optional-dependencies]
+experiment = [
+    "optuna==3.6.1",
+    "smac3",
+]
+
+[tool.setuptools]
+packages = ["deepcave_x"]
