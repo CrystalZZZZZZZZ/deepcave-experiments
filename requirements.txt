@@ -1,0 +1,18 @@
+# DeepCAVE 实验基线依赖（Python 3.9/3.10 环境）
+
+# DeepCAVE 本体与版本约束
+deepcave==1.4.1
+ConfigSpace==1.2.0
+kaleido==0.2.1          # DeepCAVE 固定的 plotly==5.24.1 需要 0.2.x 才能写 PNG
+
+# 两个对比的优化器
+optuna==3.6.1           # DeepCAVE extras 指定的兼容版本
+smac3
+
+# 公开数据 + 模型评测
+scikit-learn
+numpy
+pandas
+
+# 可选：OpenML 在线数据集（代码会自动降级为 sklearn 内置数据）
+# openml
