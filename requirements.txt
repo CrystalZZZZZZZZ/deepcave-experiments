@@ -1,18 +1,35 @@
-# DeepCAVE 实验基线依赖（Python 3.9/3.10 环境）
+# If something is changed here, change it in the pre-commit-hook under mypy additonal dependencies as well
+# otherwise mypy wont check the dependencies
+wheel>=0.41.2
+setuptools==68.2.2
+absl-py>=1.0.0
+jsonlines>=3.0.0
+pandas>=1.3.4
+# numpy needs to be installed via conda instead of pip
+matplotlib==3.9.0
+seaborn>=0.13.0
+pyyaml>=6.0.1
+kaleido>=0.2.1
+gplearn>=0.4.2
+sympy>=1.12
+requests>=2.31.0
 
-# DeepCAVE 本体与版本约束
-deepcave==1.4.1
+# AutoML packages
 ConfigSpace==1.2.0
-kaleido==0.2.1          # DeepCAVE 固定的 plotly==5.24.1 需要 0.2.x 才能写 PNG
+pyrfr>=0.9.0
 
-# 两个对比的优化器
-optuna==3.6.1           # DeepCAVE extras 指定的兼容版本
-smac3
+# Upgrading to 2.1.0 or higher breaks the slider because string keys in marks
+# can not be interpreted anymore (2.0.0 works nicely)
+dash==2.0.0
+dash-extensions==0.0.71
+dash-bootstrap-components==1.0.3
+redis>=4.1.4
+rq==1.10.1
+plotly==5.24.1
+# Pinned due to https://github.com/plotly/dash/issues/1992
+# Pinning might be removed for dash>2.3.0
+werkzeug==2.0.3
+pyarrow==19.0.1
+fastparquet==2024.5.0
 
-# 公开数据 + 模型评测
-scikit-learn
-numpy
-pandas
-
-# 可选：OpenML 在线数据集（代码会自动降级为 sklearn 内置数据）
-# openml
+pyPDPPartitioner>=0.1.9

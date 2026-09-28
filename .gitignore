@@ -1,8 +1,34 @@
-.DS_Store
-.ipynb_checkpoints/
-**/.ipynb_checkpoints/
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+.Python
+
+# Environments
 .venv/
 venv/
 env/
+ENV/
+
+# Packaging and distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test and type-check caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local configuration and runtime data
+deepcave/cache/
+*.rdb
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp

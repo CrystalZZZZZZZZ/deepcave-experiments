@@ -1,28 +1,72 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+# For TOML reference
+# https://learnxinyminutes.com/docs/toml/
 
-[project]
-name = "deepcave-x"
-version = "0.1.0"
-description = "DeepCAVE-X: HPO trajectory comparison, importance and bottleneck diagnosis on top of DeepCAVE."
-readme = "README.md"
-requires-python = ">=3.9,<3.11"
-dependencies = [
-    "deepcave==1.4.1",
-    "ConfigSpace==1.2.0",
-    "pandas",
-    "numpy",
-    "scikit-learn",
-    "plotly==5.24.1",
-    "kaleido==0.2.1",
+[tool.pytest.ini_options]
+testpaths = ["tests"]      # path to the test directory
+minversion = "3.9"
+addopts = "--cov=deepcave" # Should be package name
+
+[tool.coverage.run]
+branch = true
+context = "deepcave" # Should be package name
+omit = [
+  "deepcave/__init__.py", # Has variables only needed for setup.py
 ]
 
-[project.optional-dependencies]
-experiment = [
-    "optuna==3.6.1",
-    "smac3",
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+  "pragma: no cover",
+  '\.\.\.',
+  "raise NotImplementedError",
+  "if TYPE_CHECKING",
+] # These are lines to exclude from coverage
+
+[tool.black]
+target-version = ['py39']
+line-length = 100
+
+[tool.isort]
+py_version = "39"
+profile = "black" # Play nicely with black
+src_paths = ["deepcave", "tests"]
+known_types = ["typing", "abc"] # We put these in their own section "types"
+known_test = ["tests"]
+known_first_party = ["deepcave"]
+sections = [
+  "FUTURE",
+  "TYPES",
+  "STDLIB",
+  "THIRDPARTY",
+  "FIRSTPARTY",
+  "TEST",
+  "LOCALFOLDER",
+] # section ordering
+multi_line_output = 3 # https://pycqa.github.io/isort/docs/configuration/multi_line_output_modes.html
+
+[tool.pydocstyle]
+convention = "numpy"
+add-ignore = [ # http://www.pydocstyle.org/en/stable/error_codes.html
+  "D105", # Missing docstring in magic method
+  "D212", # Multi-line docstring summary should start at the first line
 ]
 
-[tool.setuptools]
-packages = ["deepcave_x"]
+[tool.mypy]
+python_version = "3.9"
+show_error_codes = true
+warn_unused_configs = true         # warn about unused [tool.mypy] lines
+follow_imports = "normal"          # Type check top level api code we use from imports
+ignore_missing_imports = true      # prefer explicit ignores
+disallow_untyped_defs = true       # All functions must have types
+disallow_untyped_decorators = true # ... even decorators
+disallow_incomplete_defs = true    # ... all types
+check_untyped_defs = true          # Problems are shown, even if def is check_untyped_defs
+
+[[tool.mypy.overrides]]
+module = ["setuptools.*"]     # Add modules that give import errors here
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]                # pytest uses decorators which are not typed in 3.9
+disallow_untyped_decorators = false # decorators in testing are not all annotated

@@ -1,0 +1,50 @@
+name: tests
+
+# Cancel previous tests for this branch if a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  # Allow manual trigger of workflow
+  workflow_dispatch:
+
+  # Run tests on push/merge to main
+  push:
+    branches:
+      - main
+
+  # Run tests on anything that has a pull request to main/development
+  pull_request:
+    branches:
+      - main
+      - development
+
+jobs:
+  pytest:
+    name: Test ${{ matrix.python-version }}-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash # Default to using bash on all
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10"] # "3.11" fails due to swig
+        os: ["ubuntu-latest"] # "macos-latest", "windows-latest" fails due to swig
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install swig
+          python -m pip install ".[dev]"
+
+      - name: Run pytest
+        run: pytest tests
