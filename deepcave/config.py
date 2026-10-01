@@ -107,6 +107,7 @@ class Config:
     def PLUGINS(self) -> Dict[str, List[Any]]:
         """A list of available plugins per category."""
         from deepcave.plugins.budget.budget_correlation import BudgetCorrelation
+        from deepcave.plugins.budget.fidelity_replay import FidelityReplay
         from deepcave.plugins.hyperparameter.ablation_paths import AblationPaths
         from deepcave.plugins.hyperparameter.configuration_cube import ConfigurationCube
         from deepcave.plugins.hyperparameter.importances import Importances
@@ -118,7 +119,9 @@ class Config:
         from deepcave.plugins.hyperparameter.symbolic_explanations import (
             SymbolicExplanations,
         )
+        from deepcave.plugins.objective.bottleneck_diagnosis import BottleneckDiagnosis
         from deepcave.plugins.objective.cost_over_time import CostOverTime
+        from deepcave.plugins.objective.hypervolume_convergence import HypervolumeConvergence
         from deepcave.plugins.objective.pareto_front import ParetoFront
         from deepcave.plugins.summary.configurations import Configurations
         from deepcave.plugins.summary.footprint import FootPrint
@@ -135,10 +138,13 @@ class Config:
             ],
             "Objective Analysis": [
                 CostOverTime(),
+                BottleneckDiagnosis(),
                 ParetoFront(),
+                HypervolumeConvergence(),
             ],
             "Budget Analysis": [
                 BudgetCorrelation(),
+                FidelityReplay(),
             ],
             "Hyperparameter Analysis": [
                 Importances(),

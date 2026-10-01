@@ -302,6 +302,20 @@ class Plugin(Layout, ABC):
                 # Reload our inputs
                 if init:
                     inputs = c.get("last_inputs", self.id)
+
+                    # Guard against stale run ids: if the cached run is no
+                    # longer available (e.g. the working directory or the
+                    # selected runs changed), reset it. Otherwise the value
+                    # would be restored into the run selection and every
+                    # output callback would fail with "Run not found."
+                    if inputs and self.activate_run_selection:
+                        run_id = (inputs.get("run") or {}).get("value")
+                        if run_id is not None:
+                            try:
+                                run_handler.get_run(run_id)
+                            except RuntimeError:
+                                inputs["run"]["value"] = None
+
                     passed_inputs = parse_url(pathname)
 
                     if passed_inputs is not None:
@@ -369,7 +383,15 @@ class Plugin(Layout, ABC):
                             )
                             update_dict(inputs, new_inputs)
 
-                            # Keep the run value
+                            # Keep the run value, but only if it is still
+                            # available. A stale id (e.g. after removing runs
+                            # or changing the working directory) would let the
+                            # output callbacks fail with "Run not found."
+                            if run_value is not None:
+                                try:
+                                    run_handler.get_run(run_value)
+                                except RuntimeError:
+                                    run_value = None
                             inputs["run"]["value"] = run_value
                 else:
                     # Map the list `inputs` to a dict.

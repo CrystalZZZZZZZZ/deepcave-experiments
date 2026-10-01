@@ -27,6 +27,7 @@ It provides utilities to update and remove runs as well as groups of runs.
 
 from typing import Dict, List, Optional, Type, Union
 
+import threading
 import time
 from pathlib import Path
 
@@ -79,6 +80,11 @@ class RunHandler:
         # Internal state
         self.runs: Dict[str, AbstractRun] = {}  # run_name -> Run
         self.groups: Dict[str, Group] = {}  # group_name -> GroupedRun
+
+        # The handler is shared between all requests. Since Flask serves
+        # requests in multiple threads (and plugins may poll on an interval),
+        # updates of the internal state have to be serialized.
+        self._lock = threading.RLock()
 
         # Read from cache and update
         self.c.read()
@@ -287,21 +293,27 @@ class RunHandler:
 
     def update(self) -> None:
         """Update the internal run and group instances but only if a hash changed."""
-        update_required = False
-        for run_path in list(self.runs.keys()):
-            run = self.runs[run_path]
+        with self._lock:
+            update_required = False
+            for run_path in list(self.runs.keys()):
+                run = self.runs.get(run_path)
 
-            # Get cache
-            if self.rc.update(run):
-                # It's important to delete the run from self.runs here because
-                # otherwise this object is kept in memory though it has changed
-                del self.runs[run_path]
+                # Another thread may have replaced `self.runs` in the
+                # meantime (e.g. via update_runs). Skip the path then.
+                if run is None:
+                    continue
 
-                update_required = True
+                # Get cache
+                if self.rc.update(run):
+                    # It's important to delete the run from self.runs here because
+                    # otherwise this object is kept in memory though it has changed
+                    self.runs.pop(run_path, None)
 
-        if update_required:
-            self.update_runs()
-            self.update_groups()
+                    update_required = True
+
+            if update_required:
+                self.update_runs()
+                self.update_groups()
 
     def update_runs(self) -> bool:
         """
@@ -320,23 +332,24 @@ class RunHandler:
         runs: Dict[str, AbstractRun] = {}  # run_path: Run
         success = True
 
-        class_hint = None
-        updated_paths = []
-        for run_path in self.get_selected_run_paths():
-            run = self.update_run(run_path, class_hint=class_hint)
-            if run is not None:
-                runs[run_path] = run
-                class_hint = run.__class__
-                updated_paths += [run_path]
-            else:
-                success = False
+        with self._lock:
+            class_hint = None
+            updated_paths = []
+            for run_path in self.get_selected_run_paths():
+                run = self.update_run(run_path, class_hint=class_hint)
+                if run is not None:
+                    runs[run_path] = run
+                    class_hint = run.__class__
+                    updated_paths += [run_path]
+                else:
+                    success = False
 
-        # Save in cache again
-        if self.get_selected_run_paths() != updated_paths:
-            self.c.set("selected_run_paths", value=updated_paths)
+            # Save in cache again
+            if self.get_selected_run_paths() != updated_paths:
+                self.c.set("selected_run_paths", value=updated_paths)
 
-        # Save runs in memory
-        self.runs = runs
+            # Save runs in memory
+            self.runs = runs
 
         return success
 
@@ -437,29 +450,31 @@ class RunHandler:
         # This check is necessary because groups could still be None
         if groups is None:
             raise TypeError("Groups can not be None.")
-        # Add grouped runs
-        for group_name, run_paths in groups.items():
-            runs = []
-            for run_path, run in self.runs.items():
-                if run_path in run_paths:
-                    runs += [run]
 
-            if len(runs) == 0:
-                continue
+        with self._lock:
+            # Add grouped runs
+            for group_name, run_paths in groups.items():
+                runs = []
+                for run_path, run in self.runs.items():
+                    if run_path in run_paths:
+                        runs += [run]
 
-            # Throws NotMergeableError
-            instantiated_groups[group_name] = Group(group_name, runs)
+                if len(runs) == 0:
+                    continue
 
-        # Add groups to rc
-        for group in instantiated_groups.values():
-            # Create cache file and set name/hash. Clear cache if hash got changed
-            self.rc.update(group)
+                # Throws NotMergeableError
+                instantiated_groups[group_name] = Group(group_name, runs)
 
-        # Save in cache
-        self.c.set("groups", value=groups)
+            # Add groups to rc
+            for group in instantiated_groups.values():
+                # Create cache file and set name/hash. Clear cache if hash got changed
+                self.rc.update(group)
 
-        # Save in memory
-        self.groups = instantiated_groups
+            # Save in cache
+            self.c.set("groups", value=groups)
+
+            # Save in memory
+            self.groups = instantiated_groups
 
     def get_run(self, run_id: str) -> AbstractRun:
         """

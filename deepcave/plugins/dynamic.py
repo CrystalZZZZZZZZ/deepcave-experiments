@@ -29,6 +29,7 @@ from typing import Any, List
 
 from dash.dependencies import Input, Output
 from dash.development.base_component import Component
+from dash.exceptions import PreventUpdate
 
 from deepcave import interactive
 from deepcave.plugins import Plugin
@@ -106,7 +107,15 @@ class DynamicPlugin(Plugin, ABC):
             # of the function _dict_as_key.
             inputs_key = self._dict_as_key(inputs, remove_filters=True)
             cleaned_inputs = self._clean_inputs(inputs)
-            runs = self.get_selected_runs(inputs)
+
+            # Guard against stale run ids: if the selected run is not
+            # available anymore (e.g. the working directory or the run
+            # selection changed), skip the update instead of failing with
+            # "Run not found."
+            try:
+                runs = self.get_selected_runs(inputs)
+            except RuntimeError:
+                raise PreventUpdate()
 
             raw_outputs = {}
             rc.clear()

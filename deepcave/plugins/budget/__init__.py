@@ -20,4 +20,6 @@
 ----------
 budget_correlation
     This module provides utilities to visualize budget correlations.
+fidelity_replay
+    This module provides utilities for replaying the fidelity ladder.
 """
