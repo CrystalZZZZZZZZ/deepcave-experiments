@@ -3,7 +3,11 @@
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
-from ConfigSpace import CategoricalHyperparameter, Constant, UniformIntegerHyperparameter
+from ConfigSpace import (
+	CategoricalHyperparameter,
+	Constant,
+	UniformIntegerHyperparameter,
+)
 from sklearn.ensemble import RandomForestRegressor
 
 from deepcave.runs import AbstractRun, Status
@@ -18,28 +22,38 @@ def _json_float(value: float) -> float:
 
 def _sample_empirical(
 	x: np.ndarray,
-	categorical: np.ndarray,
 	rng: np.random.Generator,
 	size: int,
-	uniform: bool = False,
 ) -> np.ndarray:
-	"""Sample an independent product of empirical marginal distributions."""
+	"""Sample the independent product of empirical marginal distributions."""
 	samples = np.empty((size, x.shape[1]), dtype=float)
 	for column in range(x.shape[1]):
 		values = x[:, column]
-		if uniform:
-			if categorical[column]:
-				samples[:, column] = rng.choice(np.unique(values), size=size, replace=True)
-			else:
-				samples[:, column] = rng.uniform(0.0, 1.0, size)
-			continue
 		indices = rng.integers(0, len(values), size=size)
 		samples[:, column] = values[indices]
-		if not categorical[column] and not uniform:
-			bandwidth = 1.06 * np.std(values) * len(values) ** (-0.2)
-			if bandwidth > 0:
-				samples[:, column] += rng.normal(0.0, bandwidth, size)
-				samples[:, column] = np.clip(samples[:, column], 0.0, 1.0)
+	return samples
+
+
+def _sample_uniform(
+	x: np.ndarray,
+	hyperparameters: list[Any],
+	rng: np.random.Generator,
+	size: int,
+) -> np.ndarray:
+	"""Sample the ConfigSpace reference distribution in encoded coordinates."""
+	samples = np.empty((size, x.shape[1]), dtype=float)
+	for column, hyperparameter in enumerate(hyperparameters):
+		if isinstance(hyperparameter, CategoricalHyperparameter):
+			values = [float(hyperparameter.to_vector(choice)) for choice in hyperparameter.choices]
+			samples[:, column] = rng.choice(values, size=size, replace=True)
+		elif isinstance(hyperparameter, UniformIntegerHyperparameter):
+			values = [
+				float(hyperparameter.to_vector(value))
+				for value in range(hyperparameter.lower, hyperparameter.upper + 1)
+			]
+			samples[:, column] = rng.choice(values, size=size, replace=True)
+		else:
+			samples[:, column] = rng.uniform(0.0, 1.0, size=size)
 	return samples
 
 
@@ -50,23 +64,31 @@ def _estimate_indices(
 	n_features: int,
 	rng: np.random.Generator,
 ) -> Tuple[np.ndarray, np.ndarray]:
-	"""Estimate first-order and total-effect indices with Saltelli swaps."""
+	"""Estimate indices with the paper's Monte Carlo estimators (5.3) and (5.4)."""
 	matrix_a = sampler(n_samples, rng)
 	matrix_b = sampler(n_samples, rng)
 	prediction_a = model.predict(matrix_a)
-	prediction_b = model.predict(matrix_b)
-	variance = float(np.var(np.concatenate([prediction_a, prediction_b]), ddof=1))
+	mean_a = float(np.mean(prediction_a))
+	variance = float(np.mean(prediction_a**2) - mean_a**2)
 	if not np.isfinite(variance) or variance <= 1e-12:
 		raise ValueError("The surrogate model has near-zero output variance.")
 
 	first_order = np.empty(n_features, dtype=float)
 	total_effect = np.empty(n_features, dtype=float)
 	for column in range(n_features):
-		exchanged = matrix_a.copy()
-		exchanged[:, column] = matrix_b[:, column]
-		prediction_ab = model.predict(exchanged)
-		first_order[column] = np.mean(prediction_b * (prediction_ab - prediction_a)) / variance
-		total_effect[column] = np.mean((prediction_a - prediction_ab) ** 2) / (2.0 * variance)
+		# Equation (5.3): keep y=x_i from A and replace z with B.
+		complement = matrix_a.copy()
+		complement[:, np.arange(n_features) != column] = matrix_b[
+			:, np.arange(n_features) != column
+		]
+		prediction_complement = model.predict(complement)
+		first_order[column] = (np.mean(prediction_a * prediction_complement) - mean_a**2) / variance
+
+		# Equation (5.4): keep z from A and replace y=x_i with B.
+		target = matrix_a.copy()
+		target[:, column] = matrix_b[:, column]
+		prediction_target = model.predict(target)
+		total_effect[column] = np.mean((prediction_a - prediction_target) ** 2) / (2.0 * variance)
 	return first_order, total_effect
 
 
@@ -119,15 +141,7 @@ def calculate(
 	if objective.optimize == "upper":
 		y = -y
 
-	categorical = np.array(
-		[
-			isinstance(
-				run.configspace[name],
-				(CategoricalHyperparameter, UniformIntegerHyperparameter),
-			)
-			for name in active_names
-		]
-	)
+	active_hyperparameters = [run.configspace[name] for name in active_names]
 	model = RandomForestRegressor(
 		n_estimators=n_trees,
 		min_samples_leaf=3,
@@ -138,7 +152,7 @@ def calculate(
 
 	rng = np.random.default_rng(seed)
 	weighted_sampler = lambda size, generator: _sample_empirical(  # noqa: E731
-		x, categorical, generator, size
+		x, generator, size
 	)
 	weighted_s1, weighted_st = _estimate_indices(
 		model, weighted_sampler, n_samples, len(active_names), rng
@@ -155,8 +169,8 @@ def calculate(
 	}
 
 	if show_uniform_control:
-		uniform_sampler = lambda size, generator: _sample_empirical(  # noqa: E731
-			x, categorical, generator, size, uniform=True
+		uniform_sampler = lambda size, generator: _sample_uniform(  # noqa: E731
+			x, active_hyperparameters, generator, size
 		)
 		uniform_s1, uniform_st = _estimate_indices(
 			model, uniform_sampler, n_samples, len(active_names), rng
