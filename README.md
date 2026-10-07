@@ -7,17 +7,7 @@ By linking visualization evidence to concrete actions—stop, continue, expand, 
 
 > **中文简介**：DeepCAVE-X 是一个以决策为中心的超参数优化（HPO）可视化分析框架。它把一次 HPO 运行看作一个序列决策过程，而不仅仅是待可视化的试验集合；将诊断证据组织为"性能充分性、参数归因、搜索行为、资源保真度"四个层面，并把可视化证据与具体行动（停止 / 继续 / 扩展 / 收缩 / 重参数化 / 调整保真度）关联起来，打通"可视化分析 → HPO 决策"的闭环。
 
-本仓库基于 **DeepCAVE v1.4.1**（[automl/DeepCAVE](https://github.com/automl/DeepCAVE)），在**保留其全部原有功能**的基础上，新增了三组实验性诊断能力（对应 `development-plan.md` 中的 P1–P3）：
-
-| # | 新增功能 | 挂载方式 | 代码位置 |
-|---|---------|---------|---------|
-| **P1** | **加权 Sobol 重要性**：用优化器的*经验采样分布*替代均匀分布来估计一阶 Sobol 重要性（S1，可选总效应 ST 与均匀对照），回答"重要性结论是否被未探索区域主导" | 集成进原有 **Importances** 插件，方法下拉框新增 `Weighted Sobol (empirical)` | `deepcave/evaluators/weighted_sobol.py`、`deepcave/plugins/hyperparameter/importances.py` |
-| **P2** | **采样密度展示**：选 1 个超参画一维边际密度（含均匀基线、样本 rug、incumbent 位置），选 2 个超参画二维联合密度直方图，直接展示搜索的覆盖与偏斜 | 全新插件 **Sampling Density**（Hyperparameter Analysis 分类） | `deepcave/plugins/hyperparameter/sampling_density.py`、`deepcave/evaluators/sampling_density.py` |
-| **P3** | **Footprint 时序回放**：在 Configuration Footprint 点云上增加 trial 序号滑块，回放"配置点如何铺开、如何收缩"；MDS 投影只计算一次、坐标冻结，红线显示截至当前 trial 的 incumbent 序列 | 全新插件 **Footprint Replay**（Summary 分类） | `deepcave/plugins/summary/footprint_replay.py`、`deepcave/evaluators/footprint_replay.py` |
-
-> 说明：开发计划中的 P4"瓶颈检测"（incumbent 曲线停滞区间标注）在 `development-plan.md` / `proposal.md` 中有完整设计，但当前仓库代码尚未实现。
-
----
+本仓库基于 **DeepCAVE v1.4.1**（[automl/DeepCAVE](https://github.com/automl/DeepCAVE)），在**保留其全部原有功能**的基础上，新增了实验性诊断能力
 
 ## 目录
 
