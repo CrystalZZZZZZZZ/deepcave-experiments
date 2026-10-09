@@ -196,14 +196,36 @@ class FootprintReplay(StaticPlugin):
                 go.Heatmap(
                     x=surface["x"], y=surface["y"], z=surface["z"],
                     zsmooth="best", hoverinfo="skip", colorscale="blues",
-                    colorbar={"title": objective.name},
+                    colorbar={
+                        "title": {"text": objective.name, "side": "right"},
+                        "x": 1.04,
+                        "len": 0.8,
+                    },
                 )
             ] + traces,
             layout=go.Layout(
-                title=f"Trial {replay['trial']} / {outputs['t_max']}",
+                title={
+                    "text": f"Trial {replay['trial']} / {outputs['t_max']}",
+                    "x": 0.5,
+                    "xanchor": "center",
+                    "y": 0.98,
+                    "yanchor": "top",
+                },
                 xaxis={"title": None, "tickvals": []},
                 yaxis={"title": None, "tickvals": []},
-                margin=config.FIGURE_MARGIN,
+                legend={
+                    "orientation": "h",
+                    "x": 0,
+                    "y": -0.18,
+                    "xanchor": "left",
+                    "yanchor": "top",
+                },
+                margin={
+                    **config.FIGURE_MARGIN,
+                    "t": max(config.FIGURE_MARGIN.get("t", 0), 60),
+                    "r": max(config.FIGURE_MARGIN.get("r", 0), 120),
+                    "b": max(config.FIGURE_MARGIN.get("b", 0), 90),
+                },
                 font={"size": config.FIGURE_FONT_SIZE},
             ),
         )

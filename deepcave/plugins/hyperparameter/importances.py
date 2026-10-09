@@ -149,6 +149,11 @@ class Importances(StaticPlugin):
                     dbc.Col(
                         [
                             dbc.Label("Sobol Samples"),
+                            help_button(
+                                "The number of samples used to estimate the Sobol indices. "
+                                "More samples provide more accurate results, but take longer "
+                                "to compute."
+                            ),
                             dbc.Input(id=register("n_samples", type=optional_int), type="number"),
                         ],
                         md=6,
@@ -624,9 +629,11 @@ class Importances(StaticPlugin):
         for budget_id in selected_budget_ids:
             budget_result = budgets[str(budget_id)] if str(budget_id) in budgets else budgets[budget_id]
             values = dict(zip(budget_result["hp_names"], budget_result[weighted_key]))
+            budget = run.get_budget(budget_id, human=True)
+            budget_suffix = "" if budget == 0.0 else f" ({budget})"
             figure.add_trace(
                 go.Bar(
-                    name=f"Weighted ({run.get_budget(budget_id, human=True)})",
+                    name=f"Weighted{budget_suffix}",
                     x=names,
                     y=[values[name] for name in names],
                     marker_color=get_color(budget_id),
@@ -636,7 +643,7 @@ class Importances(StaticPlugin):
                 uniform_values = dict(zip(budget_result["hp_names"], budget_result[uniform_key]))
                 figure.add_trace(
                     go.Bar(
-                        name=f"Uniform ({run.get_budget(budget_id, human=True)})",
+                        name=f"Uniform{budget_suffix}",
                         x=names,
                         y=[uniform_values[name] for name in names],
                         marker_color="lightgray",

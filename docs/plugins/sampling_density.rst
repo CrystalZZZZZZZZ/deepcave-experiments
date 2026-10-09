@@ -1,25 +1,22 @@
 Sampling Density
 ================
 
-The Sampling Density plugin shows how successful configurations are distributed in the encoded
-hyperparameter space at a selected budget. Repeated evaluations of the same configuration are
-folded before the density is calculated.
+The Sampling Density plugin shows how successful configurations are distributed in the original
+hyperparameter value space at a selected budget. Repeated evaluations of the same configuration
+are folded before the density is calculated.
 
-Modes
------
+Visualization
+-------------
 
-* **Single hyperparameter** displays a one-dimensional marginal density, a uniform-space baseline,
-  sample rug marks, and the incumbent value.
-* **Hyperparameter pair** displays a two-dimensional histogram with evaluated points and the
-  incumbent configuration.
+The selected hyperparameter is displayed as a one-dimensional marginal density, with an optional
+uniform baseline, sample rug marks, and the incumbent value.
 
 Categorical and integer hyperparameters are shown as discrete frequency masses. Continuous
-hyperparameters use a bounded histogram with at most 200 bins in one dimension and 80 bins per
-axis in two dimensions. All calculations use DeepCAVE's encoded configuration values.
+hyperparameters use a bounded histogram with at most 200 bins. All calculations use the original
+configuration values rather than encoded values.
 
 Filters
 -------
 
-The display filters toggle the uniform baseline, one-dimensional rug marks, and two-dimensional
-evaluated points. Changing these filters only redraws the figure; it does not recalculate the
-density.
+The display filters toggle the uniform baseline and one-dimensional rug marks. Changing these
+filters only redraws the figure; it does not recalculate the density.
