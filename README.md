@@ -9,6 +9,8 @@ By linking visualization evidence to concrete actions—stop, continue, expand, 
 
 本仓库基于 **DeepCAVE v1.4.1**（[automl/DeepCAVE](https://github.com/automl/DeepCAVE)），在**保留其全部原有功能**的基础上，新增了实验性诊断能力
 
+具体功能和设计思路请参考paper.pdf
+
 ## 1. 项目结构
 
 ```
